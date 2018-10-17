@@ -17,6 +17,7 @@
             <connections>
                 <outlet property="avPlayerView" destination="4cq-F9-6ra" id="PQL-2J-B5z"/>
                 <outlet property="playbackProgressIndicator" destination="00Y-g1-HtM" id="Fcp-bX-rQx"/>
+                <outlet property="volumeProgressIndicator" destination="w6S-Te-LHn" id="CZD-kc-177"/>
                 <outlet property="window" destination="QvC-M9-y7g" id="gIp-Ho-8D9"/>
             </connections>
         </customObject>
@@ -647,6 +648,17 @@ CA
                                     <action selector="deleteCurrentItem:" target="Voe-Tx-rLC" id="Fik-SB-JAh"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="ZNf-s9-ERS"/>
+                            <menuItem title="Increase Volume" keyEquivalent="" id="eXd-Ri-2gm">
+                                <connections>
+                                    <action selector="increaseVolume:" target="Voe-Tx-rLC" id="tcC-6C-uKZ"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Decrease Volume" keyEquivalent="" id="VkW-VP-LL1">
+                                <connections>
+                                    <action selector="decreaseVolume:" target="Voe-Tx-rLC" id="0zI-6N-7eW"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
@@ -736,12 +748,20 @@ CA
                     <progressIndicator wantsLayer="YES" maxValue="100" doubleValue="50" style="bar" translatesAutoresizingMaskIntoConstraints="NO" id="00Y-g1-HtM">
                         <rect key="frame" x="12" y="11" width="456" height="20"/>
                     </progressIndicator>
+                    <progressIndicator wantsLayer="YES" maxValue="1" doubleValue="1" style="bar" translatesAutoresizingMaskIntoConstraints="NO" id="w6S-Te-LHn">
+                        <rect key="frame" x="388" y="247" width="80" height="20"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="80" id="W5O-fG-0yk"/>
+                        </constraints>
+                    </progressIndicator>
                 </subviews>
                 <constraints>
                     <constraint firstItem="4cq-F9-6ra" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" id="2f0-OK-hzi"/>
+                    <constraint firstItem="w6S-Te-LHn" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="12" id="Eav-JH-Lhf"/>
                     <constraint firstAttribute="trailing" secondItem="00Y-g1-HtM" secondAttribute="trailing" constant="12" id="JD3-C4-o89"/>
                     <constraint firstAttribute="bottom" secondItem="4cq-F9-6ra" secondAttribute="bottom" id="M0i-Wd-J4S"/>
                     <constraint firstItem="4cq-F9-6ra" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" id="Pjv-rs-Ykc"/>
+                    <constraint firstAttribute="trailing" secondItem="w6S-Te-LHn" secondAttribute="trailing" constant="12" id="S7q-3b-CSK"/>
                     <constraint firstAttribute="bottom" secondItem="00Y-g1-HtM" secondAttribute="bottom" constant="12" id="Yt4-Iw-8LF"/>
                     <constraint firstItem="00Y-g1-HtM" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="12" id="o9f-rk-EqZ"/>
                     <constraint firstAttribute="trailing" secondItem="4cq-F9-6ra" secondAttribute="trailing" id="ukT-LX-Sf0"/>

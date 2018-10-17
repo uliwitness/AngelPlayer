@@ -7,6 +7,7 @@
 //
 
 #import "ANGLAppDelegate.h"
+#import <math.h>
 @import AVKit;
 
 
@@ -21,6 +22,7 @@
 @property (weak) IBOutlet NSWindow *window;
 @property (weak) IBOutlet AVPlayerView *avPlayerView;
 @property (weak) IBOutlet NSProgressIndicator *playbackProgressIndicator;
+@property (weak) IBOutlet NSProgressIndicator *volumeProgressIndicator;
 
 @property AVQueuePlayer *avPlayer;
 @property NSMutableArray<NSURL *> *playbackURLs;
@@ -37,11 +39,19 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 -(void)	applicationDidFinishLaunching: (NSNotification *)aNotification
 {
 	self.playbackProgressIndicator.alphaValue = 0.0;
+	self.volumeProgressIndicator.alphaValue = 0.0;
 	
 	[self updateCornerPinning];
 	
 	self.playbackURLs = [NSMutableArray new];
 	self.avPlayer = [AVQueuePlayer queuePlayerWithItems:@[]];
+	float desiredVolume = 1.0;
+	NSNumber *desiredVolumeObj = [NSUserDefaults.standardUserDefaults objectForKey: @"ANGLSoundVolume"];
+	if( desiredVolumeObj )
+	{
+		desiredVolume = desiredVolumeObj.floatValue;
+	}
+	self.avPlayer.volume = desiredVolume;
 	[self.avPlayer addObserver:self forKeyPath:@"status" options:0 context:ANGLAppDelegatePlayerStatusKVOContext];
 	[self.avPlayer addObserver:self forKeyPath:@"currentItem" options:0 context:ANGLAppDelegatePlayerCurrentItemKVOContext];
 	self.avPlayerView.player = self.avPlayer;
@@ -86,6 +96,7 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 	}
 	
 	[NSUserDefaults.standardUserDefaults setObject:openURLs forKey:@"ANGLRecentFiles"];
+	[NSUserDefaults.standardUserDefaults setObject: @(self.avPlayer.volume) forKey: @"ANGLSoundVolume"];
 }
 
 
@@ -104,7 +115,6 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 		if( [currURL.pathExtension caseInsensitiveCompare:@"mp4"] == NSOrderedSame || [currURL.pathExtension caseInsensitiveCompare:@"m4v"] == NSOrderedSame )
 		{
 			AVPlayerItem *avpi = [AVPlayerItem playerItemWithURL: currURL];
-			NSLog(@"Adding item %@", avpi);
 			[self.avPlayer insertItem:avpi afterItem:nil];
 		}
 	}
@@ -169,8 +179,6 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 			if( self->_currentItemURL )
 			{
 				[self.playbackURLs removeObject: self->_currentItemURL];
-				
-				NSLog(@"Moving last played item to back.");
 				[self addURLs: @[self->_currentItemURL]];
 			}
 			
@@ -275,6 +283,38 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 }
 
 
+-(void) flashVolumeProgressIndicator
+{
+	self.volumeProgressIndicator.doubleValue = self.avPlayer.volume;
+	
+	if( self.volumeProgressIndicator.alphaValue < 0.1 )
+	{
+		[CATransaction begin];
+		[CATransaction setAnimationDuration:0.2];
+		[CATransaction setCompletionBlock:^{
+			[self performSelector: @selector(hidePlaybackProgressIndicator) withObject: nil afterDelay: 0.5];
+		}];
+		self.volumeProgressIndicator.animator.alphaValue = 1.0;
+		[CATransaction commit];
+	}
+	else
+	{
+		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(hideVolumeProgressIndicator) object:nil];
+		
+		[self performSelector: @selector(hideVolumeProgressIndicator) withObject: nil afterDelay: 0.5];
+	}
+}
+
+
+-(void) hideVolumeProgressIndicator
+{
+	[CATransaction begin];
+	[CATransaction setAnimationDuration:0.2];
+	self.volumeProgressIndicator.animator.alphaValue = 0.0;
+	[CATransaction commit];
+}
+
+
 -(IBAction) advanceToNextItem: (nullable id)sender
 {
 	[self.avPlayer advanceToNextItem];
@@ -321,6 +361,26 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 	}
 
 	[self.avPlayer advanceToNextItem];
+}
+
+
+-(IBAction) increaseVolume: (nullable id)sender
+{
+	float volume = self.avPlayer.volume;
+	volume = fmin(volume + 0.1, 1.0);
+	self.avPlayer.volume = volume;
+	
+	[self flashVolumeProgressIndicator];
+}
+
+
+-(IBAction) decreaseVolume: (nullable id)sender
+{
+	float volume = self.avPlayer.volume;
+	volume = fmax(volume - 0.1, 0.0);
+	self.avPlayer.volume = volume;
+	
+	[self flashVolumeProgressIndicator];
 }
 
 @end
