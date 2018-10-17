@@ -15,6 +15,7 @@
 	BOOL _shouldPlayWhenReady;
 	BOOL _pinRightNotLeft;
 	BOOL _pinBottomNotTop;
+	NSURL *_currentItemURL;
 }
 
 @property (weak) IBOutlet NSWindow *window;
@@ -96,7 +97,6 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 
 -(void) addURLs: (NSArray<NSURL *> *)urls
 {
-	[self.avPlayer pause];
 	[self.playbackURLs addObjectsFromArray: urls];
 	
 	for( NSURL *currURL in urls )
@@ -162,6 +162,11 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 	}
 	else if( context == ANGLAppDelegatePlayerCurrentItemKVOContext )
 	{
+		if( _currentItemURL )
+		{
+			[self addURLs: @[_currentItemURL]];
+		}
+		
 		self.playbackProgressIndicator.doubleValue = 0.0;
 		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(hidePlaybackProgressIndicator) object:nil];
 		
@@ -174,6 +179,12 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 			[self.window setTitleWithRepresentedFilename:currentAsset.URL.path];
 
 			[self.avPlayerView flashChapterNumber: 0 chapterTitle: [NSFileManager.defaultManager displayNameAtPath: currentAsset.URL.path]];
+
+			_currentItemURL = currentAsset.URL;
+		}
+		else
+		{
+			_currentItemURL = nil;
 		}
 		
 		NSRect windowFrame = [self.window contentRectForFrameRect: self.window.frame];
@@ -282,6 +293,18 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 	CMTime desiredTime = CMTimeAdd(self.avPlayer.currentTime, CMTimeMakeWithSeconds(-10.0, 90000));
 	[self.avPlayer seekToTime:desiredTime];
 	[self flashPlaybackProgressIndicator];
+}
+
+-(IBAction) deleteCurrentItem: (nullable id)sender
+{
+	_currentItemURL = nil;
+	AVURLAsset *currentAsset = (AVURLAsset *) self.avPlayer.currentItem.asset;
+	if ([currentAsset respondsToSelector:@selector(URL)])
+	{
+		[self.playbackURLs removeObject:currentAsset.URL];
+	}
+
+	[self.avPlayer advanceToNextItem];
 }
 
 @end

@@ -12,7 +12,7 @@
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customObject id="Voe-Tx-rLC" customClass="ANGLAppDelegate">
             <connections>
                 <outlet property="avPlayerView" destination="4cq-F9-6ra" id="PQL-2J-B5z"/>
@@ -638,6 +638,15 @@
                                     <action selector="skipBackward:" target="Voe-Tx-rLC" id="tYG-OP-Unt"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="JyU-ko-A4g"/>
+                            <menuItem title="Remove Current Item" id="89Y-i3-iyT">
+                                <string key="keyEquivalent" base64-UTF8="YES">
+CA
+</string>
+                                <connections>
+                                    <action selector="deleteCurrentItem:" target="Voe-Tx-rLC" id="Fik-SB-JAh"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
@@ -719,7 +728,7 @@
             <rect key="screenRect" x="0.0" y="0.0" width="1440" height="877"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="480" height="278"/>
-                <autoresizingMask key="autoresizingMask"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <avPlayerView controlsStyle="floating" showsFrameSteppingButtons="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4cq-F9-6ra">
                         <rect key="frame" x="0.0" y="0.0" width="480" height="278"/>
