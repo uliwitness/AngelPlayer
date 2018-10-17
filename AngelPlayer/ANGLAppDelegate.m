@@ -21,7 +21,6 @@
 
 @property (weak) IBOutlet NSWindow *window;
 @property (weak) IBOutlet AVPlayerView *avPlayerView;
-@property (weak) IBOutlet NSProgressIndicator *playbackProgressIndicator;
 @property (weak) IBOutlet NSProgressIndicator *volumeProgressIndicator;
 
 @property AVQueuePlayer *avPlayer;
@@ -38,7 +37,6 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 
 -(void)	applicationDidFinishLaunching: (NSNotification *)aNotification
 {
-	self.playbackProgressIndicator.alphaValue = 0.0;
 	self.volumeProgressIndicator.alphaValue = 0.0;
 	
 	[self updateCornerPinning];
@@ -182,11 +180,6 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 				[self addURLs: @[self->_currentItemURL]];
 			}
 			
-			self.playbackProgressIndicator.doubleValue = 0.0;
-			[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(hidePlaybackProgressIndicator) object:nil];
-			
-			[self performSelector: @selector(hidePlaybackProgressIndicator) withObject: nil afterDelay: 0.5];
-			
 			AVURLAsset *currentAsset = (AVURLAsset *) self.avPlayer.currentItem.asset;
 			if ([currentAsset respondsToSelector:@selector(URL)])
 			{
@@ -251,35 +244,11 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 
 -(void) flashPlaybackProgressIndicator
 {
-	NSTimeInterval durationSeconds = CMTimeGetSeconds( self.avPlayer.currentItem.duration );
-	NSTimeInterval currentSeconds = CMTimeGetSeconds( self.avPlayer.currentItem.currentTime );
-	self.playbackProgressIndicator.doubleValue = currentSeconds * 100.0 / durationSeconds;
-	
-	if( self.playbackProgressIndicator.alphaValue < 0.1 )
+	AVURLAsset *currentAsset = (AVURLAsset *) self.avPlayer.currentItem.asset;
+	if ([currentAsset respondsToSelector:@selector(URL)])
 	{
-		[CATransaction begin];
-		[CATransaction setAnimationDuration:0.2];
-		[CATransaction setCompletionBlock:^{
-			[self performSelector: @selector(hidePlaybackProgressIndicator) withObject: nil afterDelay: 0.5];
-		}];
-		self.playbackProgressIndicator.animator.alphaValue = 1.0;
-		[CATransaction commit];
+		[self.avPlayerView flashChapterNumber: 0 chapterTitle: [NSFileManager.defaultManager displayNameAtPath: currentAsset.URL.path]];
 	}
-	else
-	{
-		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(hidePlaybackProgressIndicator) object:nil];
-		
-		[self performSelector: @selector(hidePlaybackProgressIndicator) withObject: nil afterDelay: 0.5];
-	}
-}
-
-
--(void) hidePlaybackProgressIndicator
-{
-	[CATransaction begin];
-	[CATransaction setAnimationDuration:0.2];
-	self.playbackProgressIndicator.animator.alphaValue = 0.0;
-	[CATransaction commit];
 }
 
 
@@ -292,7 +261,7 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 		[CATransaction begin];
 		[CATransaction setAnimationDuration:0.2];
 		[CATransaction setCompletionBlock:^{
-			[self performSelector: @selector(hidePlaybackProgressIndicator) withObject: nil afterDelay: 0.5];
+			[self performSelector: @selector(hideVolumeProgressIndicator) withObject: nil afterDelay: 0.5];
 		}];
 		self.volumeProgressIndicator.animator.alphaValue = 1.0;
 		[CATransaction commit];
@@ -338,16 +307,33 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 -(IBAction) skipForward: (nullable id)sender
 {
 	CMTime desiredTime = CMTimeAdd(self.avPlayer.currentTime, CMTimeMakeWithSeconds(10.0, 90000));
-	[self.avPlayer seekToTime:desiredTime];
-	[self flashPlaybackProgressIndicator];
+	CMTime duration = self.avPlayer.currentItem.duration;
+	if( CMTimeCompare(desiredTime, duration) == -1 )
+	{
+		[self.avPlayer seekToTime:desiredTime];
+		
+		[self flashPlaybackProgressIndicator];
+	}
+	else
+	{
+		[self advanceToNextItem: sender];
+	}
 }
 
 
 -(IBAction) skipBackward: (nullable id)sender
 {
 	CMTime desiredTime = CMTimeAdd(self.avPlayer.currentTime, CMTimeMakeWithSeconds(-10.0, 90000));
-	[self.avPlayer seekToTime:desiredTime];
-	[self flashPlaybackProgressIndicator];
+	CMTime duration = self.avPlayer.currentItem.duration;
+	if( CMTimeCompare(desiredTime, duration) == 1 )
+	{
+		[self.avPlayer seekToTime:desiredTime];
+		[self flashPlaybackProgressIndicator];
+	}
+	else
+	{
+		[self advanceToPreviousItem: sender];
+	}
 }
 
 
