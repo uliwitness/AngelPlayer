@@ -104,6 +104,7 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 		if( [currURL.pathExtension caseInsensitiveCompare:@"mp4"] == NSOrderedSame || [currURL.pathExtension caseInsensitiveCompare:@"m4v"] == NSOrderedSame )
 		{
 			AVPlayerItem *avpi = [AVPlayerItem playerItemWithURL: currURL];
+			NSLog(@"Adding item %@", avpi);
 			[self.avPlayer insertItem:avpi afterItem:nil];
 		}
 	}
@@ -150,81 +151,88 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 {
 	if( context == ANGLAppDelegatePlayerStatusKVOContext )
 	{
-		if( _shouldPlayWhenReady && self.avPlayer.status == AVPlayerStatusReadyToPlay )
-		{
-			[self.avPlayer play];
-			_shouldPlayWhenReady = NO;
-		}
-		else if (self.avPlayer.status == AVPlayerStatusFailed)
-		{
-			[NSApplication.sharedApplication presentError:self.avPlayer.error modalForWindow:self.window delegate:nil didPresentSelector:nil contextInfo:NULL];
-		}
+		dispatch_async( dispatch_get_main_queue(), ^{
+			if( self->_shouldPlayWhenReady && self.avPlayer.status == AVPlayerStatusReadyToPlay )
+			{
+				[self.avPlayer play];
+				self->_shouldPlayWhenReady = NO;
+			}
+			else if (self.avPlayer.status == AVPlayerStatusFailed)
+			{
+				[NSApplication.sharedApplication presentError:self.avPlayer.error modalForWindow:self.window delegate:nil didPresentSelector:nil contextInfo:NULL];
+			}
+		});
 	}
 	else if( context == ANGLAppDelegatePlayerCurrentItemKVOContext )
 	{
-		if( _currentItemURL )
-		{
-			[self addURLs: @[_currentItemURL]];
-		}
-		
-		self.playbackProgressIndicator.doubleValue = 0.0;
-		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(hidePlaybackProgressIndicator) object:nil];
-		
-		[self performSelector: @selector(hidePlaybackProgressIndicator) withObject: nil afterDelay: 0.5];
-		
-		AVURLAsset *currentAsset = (AVURLAsset *) self.avPlayer.currentItem.asset;
-		if ([currentAsset respondsToSelector:@selector(URL)])
-		{
-			[self.window setRepresentedURL: currentAsset.URL];
-			[self.window setTitleWithRepresentedFilename:currentAsset.URL.path];
-
-			[self.avPlayerView flashChapterNumber: 0 chapterTitle: [NSFileManager.defaultManager displayNameAtPath: currentAsset.URL.path]];
-
-			_currentItemURL = currentAsset.URL;
-		}
-		else
-		{
-			_currentItemURL = nil;
-		}
-		
-		NSRect windowFrame = [self.window contentRectForFrameRect: self.window.frame];
-		
-		AVAssetTrack *videoTrack = [currentAsset tracksWithMediaType: AVMediaTypeVideo].firstObject;
-		if( videoTrack )
-		{
-			[self.window setContentAspectRatio: NSZeroSize];
-			
-			NSRect assetBox = { NSZeroPoint, CGSizeApplyAffineTransform(videoTrack.naturalSize, videoTrack.preferredTransform) };
-			
-			CGFloat scaleFactor = windowFrame.size.height / assetBox.size.height;
-			
-			// Ensure height stays identical:
-			assetBox.size.height *= scaleFactor;
-			assetBox.size.width *= scaleFactor;
-
-			// Ensure we resize relative to pinned corner:
-			if( _pinRightNotLeft )
+		dispatch_async( dispatch_get_main_queue(), ^{
+			if( self->_currentItemURL )
 			{
-				assetBox.origin.x = NSMaxX(windowFrame) - assetBox.size.width;
+				[self.playbackURLs removeObject: self->_currentItemURL];
+				
+				NSLog(@"Moving last played item to back.");
+				[self addURLs: @[self->_currentItemURL]];
+			}
+			
+			self.playbackProgressIndicator.doubleValue = 0.0;
+			[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(hidePlaybackProgressIndicator) object:nil];
+			
+			[self performSelector: @selector(hidePlaybackProgressIndicator) withObject: nil afterDelay: 0.5];
+			
+			AVURLAsset *currentAsset = (AVURLAsset *) self.avPlayer.currentItem.asset;
+			if ([currentAsset respondsToSelector:@selector(URL)])
+			{
+				[self.window setRepresentedURL: currentAsset.URL];
+				[self.window setTitleWithRepresentedFilename:currentAsset.URL.path];
+				
+				[self.avPlayerView flashChapterNumber: 0 chapterTitle: [NSFileManager.defaultManager displayNameAtPath: currentAsset.URL.path]];
+				
+				self->_currentItemURL = currentAsset.URL;
 			}
 			else
 			{
-				assetBox.origin.x = windowFrame.origin.x;
+				self->_currentItemURL = nil;
 			}
 			
-			if( _pinBottomNotTop )
-			{
-				assetBox.origin.y = windowFrame.origin.y;
-			}
-			else
-			{
-				assetBox.origin.y = NSMaxY(windowFrame) - assetBox.size.height;
-			}
+			NSRect windowFrame = [self.window contentRectForFrameRect: self.window.frame];
 			
-			[self.window setFrame: [self.window frameRectForContentRect: assetBox] display: YES];
-
-			[self.window setContentAspectRatio: assetBox.size];
-		}
+			AVAssetTrack *videoTrack = [currentAsset tracksWithMediaType: AVMediaTypeVideo].firstObject;
+			if( videoTrack )
+			{
+				[self.window setContentAspectRatio: NSZeroSize];
+				
+				NSRect assetBox = { NSZeroPoint, CGSizeApplyAffineTransform(videoTrack.naturalSize, videoTrack.preferredTransform) };
+				
+				CGFloat scaleFactor = windowFrame.size.height / assetBox.size.height;
+				
+				// Ensure height stays identical:
+				assetBox.size.height *= scaleFactor;
+				assetBox.size.width *= scaleFactor;
+				
+				// Ensure we resize relative to pinned corner:
+				if( self->_pinRightNotLeft )
+				{
+					assetBox.origin.x = NSMaxX(windowFrame) - assetBox.size.width;
+				}
+				else
+				{
+					assetBox.origin.x = windowFrame.origin.x;
+				}
+				
+				if( self->_pinBottomNotTop )
+				{
+					assetBox.origin.y = windowFrame.origin.y;
+				}
+				else
+				{
+					assetBox.origin.y = NSMaxY(windowFrame) - assetBox.size.height;
+				}
+				
+				[self.window setFrame: [self.window frameRectForContentRect: assetBox] display: YES];
+				
+				[self.window setContentAspectRatio: assetBox.size];
+			}
+		});
 	}
 	else
 	{
@@ -276,7 +284,14 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 
 -(IBAction) advanceToPreviousItem: (nullable id)sender
 {
-	
+	AVPlayerItem *currentItem = self.avPlayer.currentItem;
+	AVPlayerItem *lastItem = self.avPlayer.items.lastObject;
+	[self.avPlayer removeItem: lastItem];
+	[self.avPlayer insertItem: lastItem afterItem: currentItem];
+	[self.avPlayer advanceToNextItem];
+	[self.avPlayer insertItem: currentItem afterItem: lastItem];
+
+	_currentItemURL = nil;
 }
 
 
@@ -294,6 +309,7 @@ void *ANGLAppDelegatePlayerCurrentItemKVOContext = &ANGLAppDelegatePlayerCurrent
 	[self.avPlayer seekToTime:desiredTime];
 	[self flashPlaybackProgressIndicator];
 }
+
 
 -(IBAction) deleteCurrentItem: (nullable id)sender
 {
